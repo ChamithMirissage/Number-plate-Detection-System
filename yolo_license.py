@@ -27,8 +27,8 @@ class YOLO(object):
         "model_path": 'logs/002/ep019-loss30.974-val_loss30.886.h5',
         "anchors_path": 'model_data/yolo_anchors.txt',
         "classes_path": 'train_face/_classes.txt',
-        "score" : 0.01,
-        "iou" : 0.01,
+        "score" : 0.6,
+        "iou" : 0.5,
         "model_image_size" : (416, 416),
         "gpu_num" : 1,
         "classi_model_path": 'resnet50_best.h5'
