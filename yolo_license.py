@@ -24,14 +24,14 @@ import cv2
 
 class YOLO(object):
     _defaults = {
-        "model_path": 'logs/002/ep019-loss30.974-val_loss30.886.h5',
+        "model_path": 'loss13.485-val_loss13.733.h5',
         "anchors_path": 'model_data/yolo_anchors.txt',
-        "classes_path": 'train_face/_classes.txt',
-        "score" : 0.6,
+        "classes_path": 'train_license_plate/_classes.txt',
+        "score" : 0.4,
         "iou" : 0.5,
         "model_image_size" : (416, 416),
         "gpu_num" : 1,
-        "classi_model_path": 'resnet50_best.h5'
+        "classi_model_path": 'resnet50_numberplate_best.h5'
     }
 
     @classmethod
@@ -136,6 +136,10 @@ class YOLO(object):
                     size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
         
+        classi_model_path = os.path.expanduser(self.classi_model_path)
+        self.classi_model = load_model(classi_model_path) ######compile=False
+        print ('Classi model loaded.')
+        
         image_copy = image.copy()
         for i, c in reversed(list(enumerate(out_classes))):
             predicted_class = self.class_names[c]
@@ -197,12 +201,28 @@ class YOLO(object):
                         curr_num = binary[y:y+h,x:x+w]
                         curr_num = cv2.resize(curr_num, dsize=(digit_w, digit_h))
                         _, curr_num = cv2.threshold(curr_num, 220, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                        curr_num = cv2.cvtColor(curr_num, cv2.COLOR_GRAY2RGB)
                         crop_characters.append(curr_num)
                         im = Image.fromarray(curr_num)
                         im.save('numbers/' + str(idx) + '.jpg') #############
                         idx += 1 ###########
                         
             print("Detect {} letters...".format(len(crop_characters)))
+            
+            dic = {10:'A', 11:'B', 12:'C', 13:'D', 14:'E', 15:'F', 16:'G', 17:'H', 18:'I', 19:'J', 20:'K', 21:'L', 22:'M', 23:'N', 24:'O', 25:'P', 26:'Q', 
+                    27:'R', 28:'S', 29:'T', 30:'U', 31:'V', 32:'W', 33:'X', 34:'Y', 35:'Z'}
+            number_plate = ''
+            
+            for numpy_img in crop_characters:
+                x = np.expand_dims(numpy_img, axis=0)
+                x = preprocess_input(x, mode='caffe')
+                pred_value = self.classi_model.predict(x)
+                pred_class = int(pred_value.argmax(axis=-1))
+                if (pred_class < 10):
+                    number_plate += str(pred_class)
+                else:
+                    number_plate += dic[pred_class]
+            
             '''
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
@@ -222,7 +242,7 @@ class YOLO(object):
             '''
         end = timer()
         print(end - start)
-        return image
+        return number_plate
 
     def close_session(self):
         self.sess.close()
